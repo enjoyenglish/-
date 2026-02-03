@@ -2,62 +2,63 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>所見管理システム（シャッフル＆11種性格版）</title>
+    <title>所見管理システム（11種性格・自動生成・シャッフル対応）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; line-height: 1.4; max-width: 1550px; margin: 1em auto; padding: 0 1em; background: #f0f4f8; }
-        .card { background: white; padding: 1.5em; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1.5em; }
-        h1 { color: #0056b3; font-size: 1.3em; border-left: 5px solid #0056b3; padding-left: 15px; }
+        body { font-family: "Helvetica Neue", Arial, sans-serif; line-height: 1.5; max-width: 1550px; margin: 1em auto; padding: 0 1.5em; background: #f4f7f9; color: #333; }
+        .card { background: white; padding: 1.5em; border-radius: 10px; box-shadow: 0 2px 12px rgba(0,0,0,0.08); margin-bottom: 1.5em; }
+        h1 { color: #0056b3; font-size: 1.3em; border-left: 6px solid #0056b3; padding-left: 12px; margin-bottom: 20px; }
         
         .setup-container { display: flex; gap: 20px; }
-        .setup-box { flex: 1; border: 2px dashed #007bff; padding: 15px; text-align: center; background: #f0f8ff; border-radius: 8px; }
-        #manualInputArea { width: 100%; height: 60px; margin-top: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .setup-box { flex: 1; border: 2px dashed #007bff; padding: 20px; text-align: center; background: #f0f8ff; border-radius: 8px; }
+        #manualInputArea { width: 100%; height: 70px; margin-top: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
 
         table { width: 100%; border-collapse: collapse; background: white; table-layout: fixed; }
-        th, td { border: 1px solid #dee2e6; padding: 8px; vertical-align: middle; }
-        th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; font-size: 0.8em; }
+        th, td { border: 1px solid #dee2e6; padding: 10px; vertical-align: middle; }
+        th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; font-size: 0.85em; }
         
-        .col-name { width: 120px; font-weight: bold; background: #f8f9fa; }
-        .col-traits { width: 480px; }
-        .col-eval { width: 90px; }
-        .col-action { width: 90px; }
+        .col-name { width: 140px; font-weight: bold; background: #f8f9fa; }
+        .col-traits { width: 500px; }
+        .col-eval { width: 100px; }
+        .col-action { width: 100px; }
 
-        /* 11種類の性格グリッド */
-        .trait-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 0.75em; }
-        .trait-grid label { display: flex; align-items: center; background: #fff; border: 1px solid #ced4da; padding: 3px; border-radius: 3px; cursor: pointer; }
-        .trait-grid label:hover { background: #eef; }
+        .trait-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 5px; font-size: 0.75em; }
+        .trait-grid label { display: flex; align-items: center; background: #fdfdfd; border: 1px solid #ced4da; padding: 4px; border-radius: 4px; cursor: pointer; transition: 0.2s; }
+        .trait-grid label:hover { background: #eef5ff; border-color: #007bff; }
 
-        .result-box { width: 100%; height: 100px; padding: 8px; border: 2px solid #ffd33d; border-radius: 4px; background: #fffdf0; font-size: 0.9em; line-height: 1.5; resize: vertical; box-sizing: border-box; }
+        .result-box { width: 100%; height: 110px; padding: 10px; border: 2px solid #ffd33d; border-radius: 5px; background: #fffdf0; font-size: 0.95em; line-height: 1.6; resize: vertical; box-sizing: border-box; }
+        .result-box:focus { background: white; border-color: #007bff; outline: none; }
 
-        .btn { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; padding: 8px 12px; transition: 0.2s; }
-        .btn-main { background: #007bff; color: white; margin-top: 5px; }
-        .btn-shuffle { background: #6c757d; color: white; font-size: 0.75em; width: 100%; }
-        .btn-shuffle:hover { background: #5a6268; }
-        .btn-csv { background: #28a745; color: white; padding: 10px 20px; }
+        .btn { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; padding: 10px 15px; }
+        .btn-main { background: #007bff; color: white; margin-top: 10px; }
+        .btn-shuffle { background: #6c757d; color: white; font-size: 0.8em; width: 100%; height: 40px; }
+        .btn-shuffle:hover { background: #495057; }
+        .btn-csv { background: #28a745; color: white; font-size: 1.1em; }
         
-        .sticky-header { position: sticky; top: 0; background: #f0f4f8; padding: 10px 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; }
+        .sticky-header { position: sticky; top: 0; background: #f4f7f9; padding: 15px 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; border-bottom: 2px solid #007bff; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>1. 名簿の登録</h1>
+    <h1>1. 名簿登録（Excel読込 または 手入力）</h1>
     <div class="setup-container">
         <div class="setup-box">
             <strong>Excel読み込み</strong><br>
             <input type="file" accept=".xlsx, .xls" onchange="processExcel(this)">
+            <p style="font-size: 0.8em; color: #777;">A列:番号 / B列:名前 の形式を推奨</p>
         </div>
         <div class="setup-box">
-            <strong>手入力（貼り付け）</strong><br>
+            <strong>手入力・貼り付け</strong><br>
             <textarea id="manualInputArea" placeholder="出席番号 名前"></textarea><br>
-            <button class="btn btn-main" onclick="processManual()">登録</button>
+            <button class="btn btn-main" onclick="processManual()">この内容で名簿を作成</button>
         </div>
     </div>
 </div>
 
 <div id="mainSection" style="display:none;">
     <div class="sticky-header">
-        <div><strong>2. 自動作成（名前なし）</strong></div>
+        <div><strong>2. 所見リアルタイム作成</strong>（チェックを入れると即座に自動生成・名前は入りません）</div>
         <button class="btn btn-csv" onclick="exportToCSV()">全員分をCSV保存</button>
     </div>
     
@@ -65,11 +66,11 @@
         <table>
             <thead>
                 <tr>
-                    <th class="col-name">氏名</th>
-                    <th class="col-traits">性格（11種類）</th>
+                    <th class="col-name">生徒名</th>
+                    <th class="col-traits">性格（11項目）</th>
                     <th class="col-eval">学習</th>
-                    <th class="col-action">シャッフル</th>
-                    <th>生成結果（直接編集可）</th>
+                    <th class="col-action">入れ替え</th>
+                    <th>生成結果（直接編集可能）</th>
                 </tr>
             </thead>
             <tbody id="studentBody"></tbody>
@@ -78,72 +79,27 @@
 </div>
 
 <script>
-// ① 11種類の性格データ（各項目に複数のバリエーションを持たせ、シャッフル可能に）
+// 性格11種類 × 各3パターン（シャッフル用）
 const traitsDB = {
-    "優しい": [
-        "周囲の状況をよく見て、困っている友人にそっと寄り添う自然な優しさがありました。",
-        "他者の喜びを自分のことのように大切にできる、温かな心の持ち主です。",
-        "誰に対しても分け隔てなく接し、クラスの雰囲気を柔らかく包み込んでくれました。"
-    ],
-    "真面目": [
-        "与えられた役割を最後まで責任を持って果たし、周囲からの厚い信頼を得ました。",
-        "一つ一つの課題に対して丁寧に向き合い、妥協のない姿勢を貫きました。",
-        "日々の清掃や係活動に黙々と取り組む姿は、周囲の模範となりました。"
-    ],
-    "努力家": [
-        "地道な積み重ねを一日も欠かさず継続し、着実に力を伸ばすことができました。",
-        "目標に向かって一歩ずつ進むひたむきな姿勢が、多くの場面で見られました。",
-        "苦手なことからも逃げ出さず、克服しようと努力する強さを持っています。"
-    ],
-    "活発": [
-        "何事にも意欲的に挑戦し、クラス全体に活気を与える原動力となりました。",
-        "自分の考えをはっきりと表現し、集団の活発な活動に大きく貢献しました。",
-        "持ち前の明るさで周囲を巻き込み、話し合いを盛り上げる姿が印象的でした。"
-    ],
-    "穏やか": [
-        "落ち着いた物腰で、周囲に安心感を与える大切な存在として過ごしました。",
-        "誰に対しても一貫して穏やかに接し、クラスの和を支えてくれました。",
-        "感情を上手にコントロールし、トラブルの際も冷静に対応することができました。"
-    ],
-    "慎重": [
-        "物事に取り組む前にしっかりと考えを巡らせ、丁寧な一歩を踏み出すことができました。",
-        "細かな点にも注意を払い、ミスを防ごうとする確実な仕事ぶりが光りました。",
-        "安全や手順をよく確認してから行動する、落ち着いた判断力がありました。"
-    ],
-    "独創的": [
-        "既存の枠にとらわれない豊かな発想を持ち、独自の視点で工夫を凝らす姿が見られました。",
-        "表現活動において、自分らしい工夫を凝らした素晴らしい作品を数多く作り上げました。",
-        "発想がユニークで、クラスの課題に対して新しい解決策を提案してくれました。"
-    ],
-    "責任感": [
-        "自分の仕事を最後まで投げ出さず、やり遂げようとする強い意志を持っていました。",
-        "クラスの約束事を守り、規律ある生活を自ら実践することができました。",
-        "任された当番活動を忘れることなく、誠実に遂行する責任感がありました。"
-    ],
-    "協調的": [
-        "仲間の意見を尊重しながら物事を円滑に進める、優れた調整役として活躍しました。",
-        "周囲と協力して一つの目標を達成する喜びを、身をもって示してくれました。",
-        "集団の中での自分の役割を理解し、友人と助け合って活動できました。"
-    ],
-    "探究心": [
-        "「なぜ」という疑問を大切にし、納得がいくまで自ら調べようとする熱心な姿勢がありました。",
-        "興味を持った分野に対して、専門的な知識を深めようとする集中力が素晴らしいです。",
-        "未知の事柄に対しても知的好奇心を持って向き合い、探究を深めていました。"
-    ],
-    "礼儀正しい": [
-        "誰に対しても節度ある態度で接し、気持ちの良い挨拶を欠かさない清々しさがありました。",
-        "感謝の言葉を素直に伝えることができ、周囲からも好感を持たれる人柄です。",
-        "時と場合に応じた適切な言葉遣いができ、マナーの良さが際立っていました。"
-    ]
+    "優しい": ["周囲の状況をよく見て、困っている友人にそっと寄り添う自然な優しさがありました。","他者の喜びを自分のことのように大切にできる、温かな心の持ち主です。","誰に対しても分け隔てなく接し、クラスの雰囲気を柔らかく包み込んでくれました。"],
+    "真面目": ["与えられた役割を最後まで責任を持って果たし、周囲からの厚い信頼を得ました。","一つ一つの課題に対して丁寧に向き合い、妥協のない姿勢を貫きました。","地道な準備や片付けを厭わず、常に誠実な態度で生活を送ることができました。"],
+    "努力家": ["地道な積み重ねを一日も欠かさず継続し、着実に力を伸ばすことができました。","目標に向かって一歩ずつ進むひたむきな姿勢が、多くの場面で見られました。","苦手なことからも逃げ出さず、克服しようと努力する強さを持っています。"],
+    "活発": ["何事にも意欲的に挑戦し、クラス全体に活気を与える原動力となりました。","自分の考えをはっきりと表現し、集団の活発な活動に大きく貢献しました。","持ち前の明るさで周囲を巻き込み、話し合いを盛り上げる姿が印象的でした。"],
+    "穏やか": ["落ち着いた物腰で、周囲に安心感を与える大切な存在として過ごしました。","誰に対しても一貫して穏やかに接し、クラスの和を支えてくれました。","感情を上手にコントロールし、周囲と円満な関係を築くことができました。"],
+    "慎重": ["物事に取り組む前にしっかりと考えを巡らせ、丁寧な一歩を踏み出すことができました。","細かな点にも注意を払い、ミスを防ごうとする確実な仕事ぶりが光りました。","安全や手順をよく確認してから行動する、落ち着いた判断力がありました。"],
+    "独創的": ["既存の枠にとらわれない豊かな発想を持ち、独自の視点で工夫を凝らす姿が見られました。","自分らしい工夫を凝らした素晴らしい表現活動を数多く展開しました。","発想がユニークで、クラスの課題に対して新しい解決策を提案してくれました。"],
+    "責任感": ["自分の仕事を最後まで投げ出さず、やり遂げようとする強い責任感を持っていました。","クラスの約束事を守り、規律ある生活を自ら実践することができました。","任された当番活動を誠実に遂行し、集団のために尽力する姿が見られました。"],
+    "協調的": ["仲間の意見を尊重しながら物事を円滑に進める、優れた調整役として活躍しました。","周囲と協力して一つの目標を達成する喜びを、身をもって示してくれました。","集団の中での自分の役割を理解し、友人と助け合って活動できました。"],
+    "探究心": ["「なぜ」という疑問を大切にし、納得がいくまで自ら調べようとする熱心な姿勢がありました。","興味を持った分野に対して、専門的な知識を深めようとする集中力が素晴らしいです。","未知の事柄に対しても知的好奇心を持って向き合い、探究を深めていました。"],
+    "礼儀正しい": ["誰に対しても節度ある態度で接し、気持ちの良い挨拶を欠かさない清々しさがありました。","感謝の言葉を素直に伝えることができ、周囲からも好感を持たれる人柄です。","時と場合に応じた適切な言葉遣いができ、マナーの良さが際立っていました。"]
 };
 
 const gradesDB = {
-    "A": ["授業の内容を深く理解し、鋭い視点から独自の考えを深めることができています。", "高度な課題に対しても自ら問いを立て、探究的に解決する姿が見られました。"],
-    "B": ["毎時間の課題に真面目に取り組み、教えられた内容を確実に定着させています。", "基礎的な理解を深め、学んだ知識を適切に活用することができています。"],
-    "C": ["一歩ずつ理解を深めようとする、粘り強い姿勢で学習に向き合っています。", "支援を受けながらも、最後まであきらめずに課題を完了させようと努力しました。"]
+    "A": ["授業の内容を深く理解し、鋭い視点から独自の考えを深めることができています。", "高度な課題に対しても自律的に問いを立て、探究的に解決する姿が見られました。"],
+    "B": ["毎時間の課題に真面目に取り組み、教えられた内容を確実に定着させています。", "基礎的な理解を深め、学んだ知識を授業内で適切に活用することができました。"],
+    "C": ["一歩ずつ理解を深めようとする、粘り強い姿勢で学習に向き合っています。", "丁寧な反復練習を通じて、着実に基礎学力を身につけようと努力しました。"]
 };
 
-// Excel読み込み処理
 function processExcel(input) {
     const file = input.files[0];
     const reader = new FileReader();
@@ -158,14 +114,12 @@ function processExcel(input) {
     reader.readAsArrayBuffer(file);
 }
 
-// 手入力処理
 function processManual() {
     const names = document.getElementById('manualInputArea').value.split('\n').filter(s => s.trim() !== "");
     if(names.length === 0) return alert("名前を入力してください");
     buildTable(names);
 }
 
-// テーブル構築
 function buildTable(names) {
     const body = document.getElementById('studentBody');
     body.innerHTML = "";
@@ -186,7 +140,7 @@ function buildTable(names) {
                 </select>
             </td>
             <td class="col-action">
-                <button class="btn btn-shuffle" onclick="runGen(${i})">🔄 再生成</button>
+                <button class="btn btn-shuffle" onclick="runGen(${i})">🔄 変更</button>
             </td>
             <td>
                 <textarea class="result-box" id="out_${i}" placeholder="項目を選ぶと自動生成"></textarea>
@@ -197,7 +151,7 @@ function buildTable(names) {
     document.getElementById('mainSection').style.display = "block";
 }
 
-// 自動生成・シャッフル（名前なし）
+// リアルタイム生成 兼 シャッフルロジック
 function runGen(idx) {
     const checks = Array.from(document.querySelectorAll(`.t-check-${idx}:checked`)).map(el => el.value);
     const grade = document.getElementById(`grade_${idx}`).value;
@@ -208,20 +162,20 @@ function runGen(idx) {
         return;
     }
 
-    // ランダムに文言を選択して連結
+    // 各項目からランダムに1つ選んで連結
     let resultText = checks.map(k => {
-        const sentences = traitsDB[k];
-        return sentences[Math.floor(Math.random() * sentences.length)];
+        const patterns = traitsDB[k];
+        return patterns[Math.floor(Math.random() * patterns.length)];
     }).join("");
 
-    const gradeSentences = gradesDB[grade];
-    resultText += gradeSentences[Math.floor(Math.random() * gradeSentences.length)];
+    const gradePatterns = gradesDB[grade];
+    resultText += gradePatterns[Math.floor(Math.random() * gradePatterns.length)];
 
     outField.value = resultText;
 }
 
 function exportToCSV() {
-    let csv = "\uFEFF生徒氏名,所見本文\n";
+    let csv = "\uFEFF氏名,所見本文\n";
     const rows = document.getElementById('studentBody').querySelectorAll('tr');
     rows.forEach((r, i) => {
         const name = document.getElementById(`name_${i}`).innerText;
@@ -231,7 +185,7 @@ function exportToCSV() {
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
     const link = document.createElement("a");
     link.href = URL.createObjectURL(blob);
-    link.download = "完成所見リスト.csv";
+    link.download = "所見一括データ.csv";
     link.click();
 }
 </script>
