@@ -2,42 +2,40 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>所見リアルタイム生成システム</title>
+    <title>所見管理システム（シャッフル＆11種性格版）</title>
     <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
     <style>
-        body { font-family: sans-serif; line-height: 1.4; max-width: 1500px; margin: 1em auto; padding: 0 1em; background: #f0f4f8; color: #333; }
+        body { font-family: sans-serif; line-height: 1.4; max-width: 1550px; margin: 1em auto; padding: 0 1em; background: #f0f4f8; }
         .card { background: white; padding: 1.5em; border-radius: 8px; box-shadow: 0 2px 10px rgba(0,0,0,0.05); margin-bottom: 1.5em; }
-        h1 { color: #0056b3; font-size: 1.4em; border-left: 5px solid #0056b3; padding-left: 15px; }
+        h1 { color: #0056b3; font-size: 1.3em; border-left: 5px solid #0056b3; padding-left: 15px; }
         
         .setup-container { display: flex; gap: 20px; }
-        .setup-box { flex: 1; border: 2px dashed #007bff; padding: 20px; text-align: center; background: #f0f8ff; border-radius: 8px; }
-        #manualInputArea { width: 100%; height: 80px; margin-top: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
+        .setup-box { flex: 1; border: 2px dashed #007bff; padding: 15px; text-align: center; background: #f0f8ff; border-radius: 8px; }
+        #manualInputArea { width: 100%; height: 60px; margin-top: 10px; padding: 8px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; }
 
         table { width: 100%; border-collapse: collapse; background: white; table-layout: fixed; }
         th, td { border: 1px solid #dee2e6; padding: 8px; vertical-align: middle; }
         th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; font-size: 0.8em; }
         
-        .col-name { width: 130px; font-weight: bold; background: #f8f9fa; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-        .col-traits { width: 420px; }
-        .col-eval { width: 100px; }
-        .col-result { width: auto; }
+        .col-name { width: 120px; font-weight: bold; background: #f8f9fa; }
+        .col-traits { width: 480px; }
+        .col-eval { width: 90px; }
+        .col-action { width: 90px; }
 
-        /* 性格選択グリッド（11種類対応） */
-        .trait-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 3px; font-size: 0.7em; }
-        .trait-grid label { display: flex; align-items: center; background: #fff; border: 1px solid #ced4da; padding: 2px; border-radius: 3px; cursor: pointer; }
+        /* 11種類の性格グリッド */
+        .trait-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 4px; font-size: 0.75em; }
+        .trait-grid label { display: flex; align-items: center; background: #fff; border: 1px solid #ced4da; padding: 3px; border-radius: 3px; cursor: pointer; }
         .trait-grid label:hover { background: #eef; }
-        .trait-grid input { margin-right: 2px; }
 
-        /* 編集エリア */
-        .result-box { width: 100%; height: 90px; padding: 8px; border: 2px solid #ffd33d; border-radius: 4px; background: #fffdf0; font-size: 0.9em; line-height: 1.5; resize: vertical; box-sizing: border-box; }
-        .result-box:focus { background: white; border-color: #007bff; outline: none; }
+        .result-box { width: 100%; height: 100px; padding: 8px; border: 2px solid #ffd33d; border-radius: 4px; background: #fffdf0; font-size: 0.9em; line-height: 1.5; resize: vertical; box-sizing: border-box; }
 
-        .btn { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; padding: 8px 12px; }
-        .btn-main { background: #007bff; color: white; margin-top: 10px; }
-        .btn-csv { background: #28a745; color: white; padding: 10px 20px; font-size: 1em; }
+        .btn { border: none; border-radius: 4px; cursor: pointer; font-weight: bold; padding: 8px 12px; transition: 0.2s; }
+        .btn-main { background: #007bff; color: white; margin-top: 5px; }
+        .btn-shuffle { background: #6c757d; color: white; font-size: 0.75em; width: 100%; }
+        .btn-shuffle:hover { background: #5a6268; }
+        .btn-csv { background: #28a745; color: white; padding: 10px 20px; }
         
         .sticky-header { position: sticky; top: 0; background: #f0f4f8; padding: 10px 0; z-index: 20; display: flex; justify-content: space-between; align-items: center; }
-        select { width: 100%; font-size: 0.8em; }
     </style>
 </head>
 <body>
@@ -46,31 +44,32 @@
     <h1>1. 名簿の登録</h1>
     <div class="setup-container">
         <div class="setup-box">
-            <strong>Excelを読み込む</strong><br>
-            <input type="file" id="excelFile" accept=".xlsx, .xls" onchange="handleExcel(this)">
+            <strong>Excel読み込み</strong><br>
+            <input type="file" accept=".xlsx, .xls" onchange="processExcel(this)">
         </div>
         <div class="setup-box">
-            <strong>手入力（または貼り付け）</strong><br>
-            <textarea id="manualInputArea" placeholder="1 山田太郎&#10;2 佐藤花子"></textarea><br>
-            <button class="btn btn-main" onclick="handleManual()">名簿を確定する</button>
+            <strong>手入力（貼り付け）</strong><br>
+            <textarea id="manualInputArea" placeholder="出席番号 名前"></textarea><br>
+            <button class="btn btn-main" onclick="processManual()">登録</button>
         </div>
     </div>
 </div>
 
 <div id="mainSection" style="display:none;">
     <div class="sticky-header">
-        <div><strong>2. 自動生成モード</strong>（項目を選ぶと右側に即座に反映されます）</div>
-        <button class="btn btn-csv" onclick="exportToCSV()">全員分をCSV出力</button>
+        <div><strong>2. 自動作成（名前なし）</strong></div>
+        <button class="btn btn-csv" onclick="exportToCSV()">全員分をCSV保存</button>
     </div>
     
     <div class="card" style="padding:0; overflow-x: auto;">
         <table>
             <thead>
                 <tr>
-                    <th class="col-name">生徒名</th>
+                    <th class="col-name">氏名</th>
                     <th class="col-traits">性格（11種類）</th>
                     <th class="col-eval">学習</th>
-                    <th class="col-result">生成結果（そのまま直接編集・追記できます）</th>
+                    <th class="col-action">シャッフル</th>
+                    <th>生成結果（直接編集可）</th>
                 </tr>
             </thead>
             <tbody id="studentBody"></tbody>
@@ -79,68 +78,118 @@
 </div>
 
 <script>
-// ① 11種類の性格データ
-const personalityData = {
-    "優しい": ["周囲の状況をよく見て、困っている友人にそっと寄り添う自然な優しさがあった。","他者の喜びを自分のことのように大切にできる、温かな心の持ち主である。"],
-    "真面目": ["与えられた役割を最後まで責任を持って果たし、周囲からの厚い信頼を得た。","一つ一つの課題に対して丁寧に向き合い、妥協のない姿勢を貫いた。"],
-    "努力家": ["地道な積み重ねを一日も欠かさず継続し、着実に力を伸ばした。","目標に向かって一歩ずつ進むひたむきな姿勢が、多くの場面で見られた。"],
-    "活発": ["何事にも意欲的に挑戦し、クラス全体に活気を与える原動力となった。","自分の考えをはっきりと表現し、集団の活発な活動に貢献した。"],
-    "穏やか": ["落ち着いた物腰で、周囲に安心感を与える大切な存在であった。","誰に対しても一貫して穏やかに接し、クラスの和を支えた。"],
-    "慎重": ["物事に取り組む前にしっかりと考えを巡らせ、確実な一歩を踏み出すことができた。","細かな点にも注意を払い、ミスを防ごうとする丁寧な仕事ぶりが光った。"],
-    "独創的": ["既存の枠にとらわれない豊かな発想を持ち、独自の視点で物事を見つめることができた。","表現活動において、自分らしい工夫を凝らした素晴らしい作品を数多く作り上げた。"],
-    "責任感": ["自分の担当する仕事を最後まで投げ出さず、完璧にやり遂げようとする強い責任感があった。","クラスの約束事を守り、規律ある生活を自ら実践することができた。"],
-    "協調的": ["グループ活動において、仲間の意見を尊重しながら物事を円滑に進める調整役として活躍した。","周囲と協力して一つの目標を達成する喜びを、身をもって示してくれた。"],
-    "探究心": ["「なぜ」という疑問を大切にし、納得がいくまで自ら調べようとする熱心な学びの姿勢があった。","興味を持った分野に対して、専門的な知識を深めようとする集中力は素晴らしい。"],
-    "礼儀正しい": ["目上の人や友人に対しても節度ある態度で接し、気持ちの良い挨拶を欠かさなかった。","感謝の言葉を素直に伝えることができ、周囲からも好感を持たれる人柄である。"]
+// ① 11種類の性格データ（各項目に複数のバリエーションを持たせ、シャッフル可能に）
+const traitsDB = {
+    "優しい": [
+        "周囲の状況をよく見て、困っている友人にそっと寄り添う自然な優しさがありました。",
+        "他者の喜びを自分のことのように大切にできる、温かな心の持ち主です。",
+        "誰に対しても分け隔てなく接し、クラスの雰囲気を柔らかく包み込んでくれました。"
+    ],
+    "真面目": [
+        "与えられた役割を最後まで責任を持って果たし、周囲からの厚い信頼を得ました。",
+        "一つ一つの課題に対して丁寧に向き合い、妥協のない姿勢を貫きました。",
+        "日々の清掃や係活動に黙々と取り組む姿は、周囲の模範となりました。"
+    ],
+    "努力家": [
+        "地道な積み重ねを一日も欠かさず継続し、着実に力を伸ばすことができました。",
+        "目標に向かって一歩ずつ進むひたむきな姿勢が、多くの場面で見られました。",
+        "苦手なことからも逃げ出さず、克服しようと努力する強さを持っています。"
+    ],
+    "活発": [
+        "何事にも意欲的に挑戦し、クラス全体に活気を与える原動力となりました。",
+        "自分の考えをはっきりと表現し、集団の活発な活動に大きく貢献しました。",
+        "持ち前の明るさで周囲を巻き込み、話し合いを盛り上げる姿が印象的でした。"
+    ],
+    "穏やか": [
+        "落ち着いた物腰で、周囲に安心感を与える大切な存在として過ごしました。",
+        "誰に対しても一貫して穏やかに接し、クラスの和を支えてくれました。",
+        "感情を上手にコントロールし、トラブルの際も冷静に対応することができました。"
+    ],
+    "慎重": [
+        "物事に取り組む前にしっかりと考えを巡らせ、丁寧な一歩を踏み出すことができました。",
+        "細かな点にも注意を払い、ミスを防ごうとする確実な仕事ぶりが光りました。",
+        "安全や手順をよく確認してから行動する、落ち着いた判断力がありました。"
+    ],
+    "独創的": [
+        "既存の枠にとらわれない豊かな発想を持ち、独自の視点で工夫を凝らす姿が見られました。",
+        "表現活動において、自分らしい工夫を凝らした素晴らしい作品を数多く作り上げました。",
+        "発想がユニークで、クラスの課題に対して新しい解決策を提案してくれました。"
+    ],
+    "責任感": [
+        "自分の仕事を最後まで投げ出さず、やり遂げようとする強い意志を持っていました。",
+        "クラスの約束事を守り、規律ある生活を自ら実践することができました。",
+        "任された当番活動を忘れることなく、誠実に遂行する責任感がありました。"
+    ],
+    "協調的": [
+        "仲間の意見を尊重しながら物事を円滑に進める、優れた調整役として活躍しました。",
+        "周囲と協力して一つの目標を達成する喜びを、身をもって示してくれました。",
+        "集団の中での自分の役割を理解し、友人と助け合って活動できました。"
+    ],
+    "探究心": [
+        "「なぜ」という疑問を大切にし、納得がいくまで自ら調べようとする熱心な姿勢がありました。",
+        "興味を持った分野に対して、専門的な知識を深めようとする集中力が素晴らしいです。",
+        "未知の事柄に対しても知的好奇心を持って向き合い、探究を深めていました。"
+    ],
+    "礼儀正しい": [
+        "誰に対しても節度ある態度で接し、気持ちの良い挨拶を欠かさない清々しさがありました。",
+        "感謝の言葉を素直に伝えることができ、周囲からも好感を持たれる人柄です。",
+        "時と場合に応じた適切な言葉遣いができ、マナーの良さが際立っていました。"
+    ]
 };
 
-const learningData = {
-    "A": ["授業の内容を深く理解し、鋭い視点から独自の考えを深めることができた。"],
-    "B": ["毎時間の課題に真面目に取り組み、教えられた内容を確実に定着させた。"],
-    "C": ["一歩ずつ理解を深めようとする、粘り強い姿勢で学習に向き合った。"]
+const gradesDB = {
+    "A": ["授業の内容を深く理解し、鋭い視点から独自の考えを深めることができています。", "高度な課題に対しても自ら問いを立て、探究的に解決する姿が見られました。"],
+    "B": ["毎時間の課題に真面目に取り組み、教えられた内容を確実に定着させています。", "基礎的な理解を深め、学んだ知識を適切に活用することができています。"],
+    "C": ["一歩ずつ理解を深めようとする、粘り強い姿勢で学習に向き合っています。", "支援を受けながらも、最後まであきらめずに課題を完了させようと努力しました。"]
 };
 
-// Excel読み込み
-function handleExcel(input) {
+// Excel読み込み処理
+function processExcel(input) {
     const file = input.files[0];
     const reader = new FileReader();
     reader.onload = (e) => {
         const data = new Uint8Array(e.target.result);
-        const workbook = XLSX.read(data, {type: 'array'});
-        const jsonData = XLSX.utils.sheet_to_json(workbook.Sheets[workbook.SheetNames[0]], {header: 1});
-        renderTable(jsonData.map(row => row.join(" ")).filter(s => s.trim() !== ""));
+        const wb = XLSX.read(data, {type: 'array'});
+        const ws = wb.Sheets[wb.SheetNames[0]];
+        const json = XLSX.utils.sheet_to_json(ws, {header: 1});
+        const names = json.map(row => row.join(" ")).filter(s => s.trim() !== "");
+        buildTable(names);
     };
     reader.readAsArrayBuffer(file);
 }
 
-function handleManual() {
-    const list = document.getElementById('manualInputArea').value.split('\n').filter(s => s.trim() !== "");
-    if(list.length === 0) return alert("名前を入力してください");
-    renderTable(list);
+// 手入力処理
+function processManual() {
+    const names = document.getElementById('manualInputArea').value.split('\n').filter(s => s.trim() !== "");
+    if(names.length === 0) return alert("名前を入力してください");
+    buildTable(names);
 }
 
-function renderTable(lines) {
+// テーブル構築
+function buildTable(names) {
     const body = document.getElementById('studentBody');
     body.innerHTML = "";
-    lines.forEach((line, index) => {
-        const row = document.createElement('tr');
-        let traitOptions = `<div class="trait-grid">`;
-        Object.keys(personalityData).forEach(t => {
-            // ② 自動生成のため、onchangeイベントを追加
-            traitOptions += `<label><input type="checkbox" name="trait_${index}" value="${t}" onchange="autoGenerate(${index})"> ${t}</label>`;
+    names.forEach((name, i) => {
+        let grid = `<div class="trait-grid">`;
+        Object.keys(traitsDB).forEach(key => {
+            grid += `<label><input type="checkbox" class="t-check-${i}" value="${key}" onchange="runGen(${i})"> ${key}</label>`;
         });
-        traitOptions += `</div>`;
+        grid += `</div>`;
 
+        const row = document.createElement('tr');
         row.innerHTML = `
-            <td class="col-name" id="name_${index}">${line}</td>
-            <td class="col-traits">${traitOptions}</td>
+            <td class="col-name" id="name_${i}">${name}</td>
+            <td class="col-traits">${grid}</td>
             <td class="col-eval">
-                <select id="grade_${index}" onchange="autoGenerate(${index})">
+                <select id="grade_${i}" onchange="runGen(${i})">
                     <option value="A">A</option><option value="B" selected>B</option><option value="C">C</option>
                 </select>
             </td>
-            <td class="col-result">
-                <textarea class="result-box" id="output_${index}" placeholder="項目を選ぶと自動生成されます"></textarea>
+            <td class="col-action">
+                <button class="btn btn-shuffle" onclick="runGen(${i})">🔄 再生成</button>
+            </td>
+            <td>
+                <textarea class="result-box" id="out_${i}" placeholder="項目を選ぶと自動生成"></textarea>
             </td>
         `;
         body.appendChild(row);
@@ -148,29 +197,35 @@ function renderTable(lines) {
     document.getElementById('mainSection').style.display = "block";
 }
 
-// ② 自動生成機能（ボタン不要）
-function autoGenerate(idx) {
-    const traits = Array.from(document.querySelectorAll(`input[name="trait_${idx}"]:checked`)).map(el => el.value);
+// 自動生成・シャッフル（名前なし）
+function runGen(idx) {
+    const checks = Array.from(document.querySelectorAll(`.t-check-${idx}:checked`)).map(el => el.value);
     const grade = document.getElementById(`grade_${idx}`).value;
-    
-    // 何も選ばれていないときは空にする
-    if (traits.length === 0) {
-        document.getElementById(`output_${idx}`).value = "";
+    const outField = document.getElementById(`out_${idx}`);
+
+    if (checks.length === 0) {
+        outField.value = "";
         return;
     }
 
-    let text = traits.map(t => personalityData[t][Math.floor(Math.random() * personalityData[t].length)]).join("");
-    text += learningData[grade][Math.floor(Math.random() * learningData[grade].length)];
+    // ランダムに文言を選択して連結
+    let resultText = checks.map(k => {
+        const sentences = traitsDB[k];
+        return sentences[Math.floor(Math.random() * sentences.length)];
+    }).join("");
 
-    document.getElementById(`output_${idx}`).value = text;
+    const gradeSentences = gradesDB[grade];
+    resultText += gradeSentences[Math.floor(Math.random() * gradeSentences.length)];
+
+    outField.value = resultText;
 }
 
 function exportToCSV() {
-    let csv = "\uFEFF生徒情報,所見本文\n";
+    let csv = "\uFEFF生徒氏名,所見本文\n";
     const rows = document.getElementById('studentBody').querySelectorAll('tr');
     rows.forEach((r, i) => {
         const name = document.getElementById(`name_${i}`).innerText;
-        const text = document.getElementById(`output_${i}`).value.replace(/"/g, '""'); 
+        const text = document.getElementById(`out_${i}`).value.replace(/"/g, '""'); 
         csv += `"${name}","${text}"\n`;
     });
     const blob = new Blob([csv], { type: 'text/csv;charset=utf-8;' });
