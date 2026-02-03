@@ -2,60 +2,78 @@
 <html lang="ja">
 <head>
     <meta charset="UTF-8">
-    <title>所見生成システム（最終調整版）</title>
+    <title>一括所見管理・直接編集システム</title>
     <style>
-        body { font-family: sans-serif; line-height: 1.6; max-width: 900px; margin: 2em auto; padding: 0 1em; background: #f0f2f5; color: #333; }
-        .card { background: white; padding: 2em; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 2em; }
-        h1 { border-bottom: 2px solid #007bff; padding-bottom: 10px; font-size: 1.6em; color: #0056b3; }
-        h3 { margin-top: 1.5em; font-size: 1.1em; color: #444; }
-        input[type="text"] { width: 100%; padding: 10px; border: 1px solid #ccc; border-radius: 6px; box-sizing: border-box; }
-        .grid-traits { display: grid; grid-template-columns: repeat(auto-fill, minmax(140px, 1fr)); gap: 10px; margin-bottom: 1em; }
-        .grid-traits label { background: #f8f9fa; padding: 8px; border-radius: 6px; cursor: pointer; border: 1px solid #ddd; font-size: 0.9em; text-align: center; }
-        .radio-group { display: flex; gap: 15px; background: #e9ecef; padding: 10px; border-radius: 6px; }
-        .btn-main { background: #007bff; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold; width: 100%; margin-top: 1em; }
-        #output-area { background: #fffbe6; border: 2px dashed #ffd33d; padding: 1.5em; margin-top: 1.5em; min-height: 100px; white-space: pre-wrap; font-size: 1.1em; border-radius: 8px; }
-        .btn-copy { background: #28a745; color: white; border: none; padding: 10px 20px; border-radius: 4px; cursor: pointer; margin-top: 10px; width: 100%; }
+        body { font-family: sans-serif; line-height: 1.4; max-width: 1200px; margin: 2em auto; padding: 0 1em; background: #f0f2f5; color: #333; }
+        .card { background: white; padding: 1.5em; border-radius: 12px; box-shadow: 0 4px 15px rgba(0,0,0,0.1); margin-bottom: 2em; }
+        h1 { color: #0056b3; border-bottom: 2px solid #007bff; padding-bottom: 10px; }
+        
+        /* 編集エリアを使いやすく調整 */
+        textarea { width: 100%; height: 110px; font-size: 0.95em; padding: 10px; border: 1px solid #ccc; border-radius: 4px; box-sizing: border-box; background: #fffbe6; line-height: 1.6; resize: vertical; }
+        textarea:focus { background: #ffffff; border-color: #007bff; outline: none; box-shadow: 0 0 5px rgba(0,123,255,0.2); }
+
+        #rosterInputArea { width: 100%; height: 100px; margin-bottom: 10px; background: #fff; }
+
+        table { width: 100%; border-collapse: collapse; margin-top: 20px; table-layout: fixed; }
+        th, td { border: 1px solid #ddd; padding: 8px; text-align: left; vertical-align: top; }
+        th { background: #007bff; color: white; position: sticky; top: 0; z-index: 10; }
+        
+        .name-col { width: 120px; font-weight: bold; background: #f9f9f9; }
+        .trait-col { width: 250px; }
+        .grade-col { width: 80px; }
+        .role-col { width: 100px; }
+        .output-col { width: 420px; }
+
+        .trait-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 4px; font-size: 0.8em; }
+        .trait-grid label { display: flex; align-items: center; cursor: pointer; background: #f8f9fa; border: 1px solid #eee; padding: 2px; border-radius: 3px; }
+        .radio-set { font-size: 0.8em; display: flex; flex-direction: column; gap: 2px; }
+
+        .btn-gen { background: #007bff; color: white; border: none; padding: 6px 10px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 5px; font-weight: bold; }
+        .btn-csv { background: #17a2b8; color: white; border: none; padding: 12px 25px; border-radius: 6px; cursor: pointer; font-size: 1em; font-weight: bold; }
+        .btn-copy { background: #28a745; color: white; border: none; padding: 5px; border-radius: 4px; cursor: pointer; width: 100%; margin-top: 5px; font-size: 0.8em; }
+
+        .sticky-header { position: sticky; top: 0; background: white; padding: 15px; z-index: 20; border-bottom: 2px solid #ddd; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); }
+        .edit-hint { font-size: 0.85em; color: #666; margin-bottom: 5px; display: block; }
     </style>
 </head>
 <body>
 
 <div class="card">
-    <h1>📝 所見生成システム</h1>
-    
-    <h3>1. 生徒の名前</h3>
-    <input type="text" id="studentName" placeholder="名前を入力">
-
-    <h3>2. 性格の選択（複数選択可）</h3>
-    <div class="grid-traits" id="traitSelector"></div>
-
-    <h3>3. 学習面の状況</h3>
-    <div class="radio-group">
-        <label><input type="radio" name="learning" value="A"> A（意欲的）</label>
-        <label><input type="radio" name="learning" value="B" checked> B（着実）</label>
-        <label><input type="radio" name="learning" value="C"> C（期待）</label>
-    </div>
-
-    <h3>4. 委員会・係活動</h3>
-    <div class="radio-group">
-        <label><input type="radio" name="role" value="委員会" checked> 委員会</label>
-        <label><input type="radio" name="role" value="係・当番"> 係・当番</label>
-        <label><input type="radio" name="role" value="行事・リーダー"> 行事・リーダー</label>
-    </div>
-
-    <button class="btn-main" onclick="generate()">所見を生成・シャッフル</button>
+    <h1>📝 所見一括作成・自由編集版</h1>
+    <p>名簿を貼り付けて「名簿を反映」を押してください。</p>
+    <textarea id="rosterInputArea" placeholder="1 山田太郎&#10;2 佐藤花子..."></textarea>
+    <button class="btn-gen" style="width: auto; padding: 10px 20px;" onclick="setupRoster()">名簿を反映させる</button>
 </div>
 
-<div class="card">
-    <h3>生成結果</h3>
-    <div id="output-area">必要事項を選択してボタンを押してください。</div>
-    <button class="btn-copy" onclick="copyToClipboard()">📋 文章をコピー</button>
+<div class="card" id="mainSection" style="display:none;">
+    <div class="sticky-header">
+        <div>
+            <strong>編集モード実行中</strong><br>
+            <small>生成後の文章は自由に書き換え可能です。CSVには編集後の内容が保存されます。</small>
+        </div>
+        <button class="btn-csv" onclick="exportToCSV()">全員分(編集後)をCSV保存</button>
+    </div>
+    <table id="studentTable">
+        <thead>
+            <tr>
+                <th class="name-col">管理用氏名</th>
+                <th class="trait-col">性格（複数可）</th>
+                <th class="grade-col">学習</th>
+                <th class="role-col">役割</th>
+                <th class="output-col">生成結果（ここを直接編集できます）</th>
+            </tr>
+        </thead>
+        <tbody id="studentBody">
+        </tbody>
+    </table>
 </div>
 
 <script>
+// 文言データ（前回と同様の「セリフなし・室内派・名前なし」の高品質データ）
 const personalityData = {
     "優しい": ["友人の表情のわずかな曇りに気づき、そっと隣に座って耳を傾けるような、自然な優しさが光った。","自分のこと以上に、周りの友達が笑っていることを喜べる、とても心のきれいな姿が見られた。","輪に入りづらそうにしている子を見つけると、ごく自然に自分の隣を空けてあげる、柔らかい気遣いができた。","相手の痛みを自分のことのように考え、共感を持って語りかける姿に、何度も心が温まった。","相手を否定せず、最後まで話を丁寧に聞く姿勢を貫いた。","近くにいる友人の様子をさりげなく気遣い、必要な時にそっと寄り添う優しさを持っていた。","意見がぶつかっても、相手を尊重し柔軟に受け入れられる、大きな心を持っていた。","友人の失敗を責めることなく、再起を信じて温かく見守り続ける強さを見せた。","誰に対しても分け隔てなく接するその笑顔は、クラスの緊張をふんわりと解きほぐしてくれた。","自分の作業を止めてでも友人を手助けする姿は、見ていて胸が熱くなるほど素敵だった。"],
     "芯が強い": ["周囲に流されず、自分の考えをしっかりと持って行動できた。","困難な場面でも、瞳の奥に強い意志を宿して最後まで挑み抜いた。","自分が正しいと信じる道を、静かに、力強く歩む姿が印象的だった。","失敗してもすぐに前を向き、自分の足で立ち上がる強さを持っていた。","流行に左右されすぎず、自分らしさを大切にする姿が頼もしかった。","誰かに頼り切るのではなく、まずは自力で解決しようと努力できた。","目立たない場所でも、自分の信念を曲げずに役割を全うした。","批判を恐れず、自分の感性を大切に表現活動に励んだ。","逆境においてこそ、粘り強く踏ん張る精神力の強さを見せた。","静かな佇まいの中に、決して揺るがない自分軸を持っていた。"],
-    "リーダーシップ": ["全体の調和を考えながら前向きに声をかけ続け、クラスの心を繋ぎ止める大きな力となった。","自分の意見を主張する以上に、仲間の声を拾い上げ、全員が納得できる答えを一緒に探せた。","クラスが壁にぶつかった時、肯定的な言葉を真っ先に発し、再び走り出すきっかけを作ってくれた。","周囲を見守る眼差しがとても温かく、頼れる存在としての責任感を立派に果たした。","進んで困難な役目を引き受け、周囲を安心させるような力強さを見せた。","みんなが輝ける場所を必死に作ろうとする、愛情深い姿勢であった。","責任ある役目も楽しみながら、周りをワクワクさせるような新しい挑戦をたくさん形にした。","議論がまとまらないとき、みんなの気持ちを汲み取って進むべき道を照らし出す役割を果たした。","彼／彼女の周りにはいつも笑顔が溢れていて、自然と周囲に勇気を与える魅力があった。","成功の喜びを仲間に譲り、困難は自ら引き受ける、高潔なリーダー像を見せた。"],
+    "リーダーシップ": ["全体の調和を考えながら前向きに声をかけ続け、クラスの心を繋ぎ止める大きな力となった。","自分の意見を主張する以上に、仲間の声を拾い上げ、全員が納得できる答えを一緒に探せた。","クラスが壁にぶつかった時、肯定的な言葉を真っ先に発し、再び走り出すきっかけを作ってくれた。","周囲を見守る眼差しがとても温かく、頼れる存在としての責任感を立派に果たした。","進んで困難な役目を引き受け、周囲を安心させるような力強さを見せた。","みんなが輝ける場所を必死に作ろうとする、愛情深い姿勢であった。","責任ある役目も楽しみながら、周りをワクワクさせるような新しい挑戦をたくさん形にした。","議論がまとまらないとき、みんなの気持ちを汲み取って進むべき道を照らし出す役割を果たした。","自然と周囲に勇気を与える魅力があり、その存在がクラスの活気となった。","成功の喜びを仲間に譲り、困難は自ら引き受ける、高潔なリーダー像を見せた。"],
     "明るい": ["太陽のような笑顔で、クラスの雰囲気をパッと明るくしてくれた。","どんな時も肯定的な言葉をかけ、周囲を元気づける力があった。","元気な挨拶は、教室に活気を与える素敵な合図だった。","失敗を前向きに捉える、しなやかな心を持っていた。","楽しそうに活動する姿そのものが、周囲を幸せな気持ちにさせた。","行事の際も常に笑顔で、みんなの緊張をふんわりと解きほぐした。","新しい環境にもすぐ馴染み、誰とでも物怖じせずに関係を築くことができた。","授業中の何気ない一言が、クラスに心地よい和みをもたらした。","困難な状況でも前を向き、周囲を照らし出す強さと明るさがあった。","クラスのムードメーカーとして、常に中心で温かな光を放っていた。"],
     "親切": ["困っている子を見かけると、迷わずスッと手を差し伸べることができた。","下級生に対しても、目線を合わせて丁寧に教える姿が微笑ましかった。","落とし物を届けたりゴミを拾ったりと、さりげない善意が光った。","友人の落としたものをサッと拾い上げるような、自然な気遣いができた。","進んで手助けを申し出る姿勢に、救われた友達がクラスにたくさんいた。","自分のことだけでなく、常に周りの状況を見て動ける優しさがあった。","相手が何を求めているかを察して、先回りして行動することができた。","欠席した子への連絡を丁寧にまとめ、思いやりのある配慮を見せた。","共有スペースを整えるなど、次に使う人を想う行動が身についていた。","見返りを求めず、純粋な優しさから行動できる人柄が素晴らしかった。"],
     "活発": ["教室内での活動においても非常に意欲的で、活気ある学びの場を作り上げた。","授業中も積極的に挙手し、クラス全体の学びを力強く引っ張ってくれた。","何事にもフットワークが軽く、新しいことへも臆せず飛び込んでいった。","係の仕事や話し合いでは、持ち前のエネルギーを存分に発揮して場を盛り上げた。","自分の考えを豊かに表現する姿から、溢れる活力を感じた。","失敗を恐れず、まずはやってみるという機動力を見せた。","委員会活動などでも、自ら率先して動く姿が頼もしかった。","探究心が旺盛で、調べ学習などでも誰よりも熱心に知識を広めた。","常にエネルギーに溢れ、その前向きな勢いが周囲の良い刺激となった。","難しい課題にも、一歩前へ踏み出す明るい足取りで向き合った。"],
@@ -67,52 +85,114 @@ const personalityData = {
 };
 
 const learningData = {
-    "A": ["授業の内容を深く理解し、常に一歩先を捉えた鋭い発言でクラスをリードした。","疑問点を自ら追求する探究心があり、納得がいくまで調べ学習に没頭した。","自分の考えを論理的に整理し、友達にも分かりやすく伝える表現力が光った。","どの教科にもバランスよく取り組み、常に質の高い成果物を完成させた。","難しい課題ほど楽しそうに挑戦し、粘り強く正解を導き出す力を見せた。","教科書の内容を超えて、自分の知識と結びつけて考える深い思考力を持っていた。","課題の提出期限を厳守するだけでなく、内容に独自の工夫を凝らして仕上げた。","集中力が極めて高く、50分間の授業時間を最大限に活かして学びを深めた。","グループ学習では、周囲の学びをさりげなくサポートする余裕も感じさせた。","自律した学習習慣が確立されており、目標に向かって着実に力を伸ばした。"],
-    "B": ["毎時間の授業に真面目な態度で臨み、教えられた内容を確実に定着させた。","分からないことをそのままにせず、粘り強く反復練習に取り組む誠実さがあった。","漢字テストや計算ドリルなど、日々の積み重ねを怠らず、安定した力を発揮した。","ノートに並ぶ丁寧な文字から、一時間ごとの学びを大切にする姿勢が伝わった。","指導されたことを素直に吸収し、着実に自分の力に変えていくひたむきさがあった。","自分の得意な分野を活かしながら、全教科を通して意欲的に取り組むことができた。","授業中の受け答えがハキハキとしており、前向きに学ぼうとする姿勢が見られた。","周囲と協力しながら課題に取り組み、最後まで投げ出さずにやり遂げる強みがあった。","提出物の内容も丁寧で、学んだことを整理して定着させる工夫が見て取れた。","学習の基礎がしっかりと身についており、学期を追うごとに自信を深めていった。"],
-    "C": ["分からない問題に直面しても、まずは自分で考えてみるという姿勢が見られた。","友達の説明を真剣な表情で聞き、少しずつ理解を深めようとする歩みがあった。","学習の基礎を固めようと、自分のペースで丁寧に問題に向き合う時間が増えてきた。","授業中の些細な発見に心を動かす姿があり、本来持っている探究心の強さを感じた。","提出物の期限を守ろうと努力し、最後まで自力で仕上げようとする責任感を見せた。","計算や漢字の練習において、前回より正解を増やそうと励むひたむきさがあった。","理解できた瞬間に表情が明るくなる様子は、学びの楽しさを感じ始めている証拠と言える。","周囲の助言を素直に受け入れ、一歩ずつ着実に進もうとする誠実さがあった。","自分の苦手なことからも目を逸らさず、粘り強く学び続ける姿勢があった。","学期後半に向けて学習への集中力が少しずつ増しており、今後の飛躍が期待される。"]
+    "A": ["授業の内容を深く理解し、常に一歩先を捉えた鋭い発言でクラスをリードした。","疑問点を自ら追求する探究心があり、納得がいくまで調べ学習に没頭した。","自分の考えを論理的に整理し、友達にも分かりやすく伝える表現力が光った。","どの教科にもバランスよく取り組み、常に質の高い成果物を完成させた。","難しい課題ほど楽しそうに挑戦し、粘り強く正解を導き出す力を見せた。","教科書の内容を超えて、自分の知識と結びつけて考える深い思考力を持っていた。","課題の提出期限を厳守するだけでなく、内容に独自の工夫を凝らして仕上げた。","集中力が極めて高く、50分間の授業時間を最大限に活かして学びを深めた。","周囲の学びをさりげなくサポートする余裕も感じさせた。","目標に向かって着実に力を伸ばした。"],
+    "B": ["毎時間の授業に真面目な態度で臨み、教えられた内容を確実に定着させた。","分からないことをそのままにせず、粘り強く反復練習に取り組む誠実さがあった。","日々の積み重ねを怠らず、安定した力を発揮した。","一時間ごとの学びを大切にする姿勢が伝わった。","指導されたことを素直に吸収し、着実に自分の力に変えていくひたむきさがあった。","全教科を通して意欲的に取り組むことができた。","前向きに学ぼうとする姿勢が見られた。","最後まで投げ出さずにやり遂げる強みがあった。","学んだことを整理して定着させる工夫が見て取れた。","基礎がしっかりと身についており、学期を追うごとに自信を深めていった。"],
+    "C": ["分からない問題に直面しても、まずは自分で考えてみるという姿勢が見られた。","少しずつ理解を深めようとする歩みがあった。","自分のペースで丁寧に問題に向き合う時間が増えてきた。","本来持っている探究心の強さを感じた。","最後まで自力で仕上げようとする責任感を見せた。","前回より正解を増やそうと励むひたむきさがあった。","理解できた瞬間に表情が明るくなる様子は、学びの楽しさを感じ始めている証拠と言える。","周囲の助言を素直に受け入れ、一歩ずつ着実に進もうとする誠実さがあった。","自分の苦手なことからも目を逸らさず、粘り強く学び続ける姿勢があった。","今後の飛躍が期待される。"]
 };
 
 const roleData = {
     "委員会": ["委員会の責任ある立場を自覚し、学校全体の生活向上に大きく貢献した。","委員会の仕事において、皆が過ごしやすくなるよう細部まで心を砕いて活動した。","自分の当番ではない時も進んで委員会活動に協力する、責任感の強さを見せた。","委員会のリーダーとして、学年の枠を超えてメンバーをまとめ上げた。","地道な活動も疎かにせず、委員としての務めを一年間立派に果たした。"],
     "係・当番": ["係活動において、クラスメイトのために自分ができることを工夫して取り組んだ。","誰も見ていない場所でも清掃の手を抜かず、黙々と取り組む姿が立派だった。","給食や掃除などの当番活動を、責任を持って最後までやり遂げた。","友達が忘れている仕事に気づき、さりげなく代わりを務める優しさを見せた。","自分から仕事を見つける姿勢が頼もしかった。"],
-    "行事・リーダー": ["行事の実行委員として、みんなの意見をまとめ上げ成功に導いた。","グループのリーダーとして、全員が楽しく活動できるよう配慮を欠かさなかった。","クラスを代表する役目に対し、誇りを持って最後まで堂々とやり遂げた。","準備期間中も仲間への励ましを忘れず、チームの士気を高める役割を担った。","自分の役割を超えて、クラス全体の成功のために汗を流す姿に感銘を受けた。"]
+    "行事": ["行事の実行委員として、みんなの意見をまとめ上げ成功に導いた。","グループのリーダーとして、全員が楽しく活動できるよう配慮を欠かさなかった。","クラスを代表する役目に対し、誇りを持って最後まで堂々とやり遂げた。","準備期間中も仲間への励ましを忘れず、チームの士気を高める役割を担った。","自分の役割を超えて、クラス全体の成功のために汗を流す姿に感銘を受けた。"]
 };
 
-// 初期化
-const selector = document.getElementById('traitSelector');
-Object.keys(personalityData).forEach(trait => {
-    const label = document.createElement('label');
-    label.innerHTML = `<input type="checkbox" name="trait" value="${trait}"> ${trait}`;
-    selector.appendChild(label);
-});
+function setupRoster() {
+    const input = document.getElementById('rosterInputArea').value;
+    const lines = input.split('\n').filter(l => l.trim() !== "");
+    const body = document.getElementById('studentBody');
+    body.innerHTML = "";
 
-function generate() {
-    const name = document.getElementById('studentName').value || "〇〇";
-    const selectedTraits = Array.from(document.querySelectorAll('input[name="trait"]:checked')).map(el => el.value);
-    const learningGrade = document.querySelector('input[name="learning"]:checked').value;
-    const roleCategory = document.querySelector('input[name="role"]:checked').value;
+    lines.forEach((line, index) => {
+        const row = document.createElement('tr');
+        const nameCell = `<td class="name-col" id="name_${index}">${line}</td>`;
+
+        let traitOptions = `<div class="trait-grid">`;
+        Object.keys(personalityData).forEach(trait => {
+            traitOptions += `<label><input type="checkbox" name="trait_${index}" value="${trait}"> ${trait}</label>`;
+        });
+        traitOptions += `</div>`;
+
+        const gradeOptions = `
+            <div class="radio-set">
+                <label><input type="radio" name="grade_${index}" value="A"> A</label>
+                <label><input type="radio" name="grade_${index}" value="B" checked> B</label>
+                <label><input type="radio" name="grade_${index}" value="C"> C</label>
+            </div>`;
+
+        const roleOptions = `
+            <div class="radio-set">
+                <label><input type="radio" name="role_${index}" value="委員会" checked> 委員会</label>
+                <label><input type="radio" name="role_${index}" value="係・当番"> 係</label>
+                <label><input type="radio" name="role_${index}" value="行事"> 行事</label>
+            </div>`;
+
+        const outputCell = `
+            <td>
+                <span class="edit-hint">※ 生成後に直接書き換えOK</span>
+                <textarea id="output_${index}" placeholder="生成ボタンを押すか、直接入力してください"></textarea>
+                <button class="btn-gen" onclick="generateRow(${index})">生成・シャッフル</button>
+                <button class="btn-copy" onclick="copyRow(${index})">この子だけコピー</button>
+            </td>`;
+
+        row.innerHTML = nameCell + `<td>${traitOptions}</td>` + `<td>${gradeOptions}</td>` + `<td>${roleOptions}</td>` + outputCell;
+        body.appendChild(row);
+    });
+
+    document.getElementById('mainSection').style.display = "block";
+}
+
+function generateRow(idx) {
+    const selectedTraits = Array.from(document.querySelectorAll(`input[name="trait_${idx}"]:checked`)).map(el => el.value);
+    const grade = document.querySelector(`input[name="grade_${idx}"]:checked`).value;
+    const role = document.querySelector(`input[name="role_${idx}"]:checked`).value;
 
     if (selectedTraits.length === 0) {
-        alert("性格を1つ以上選択してください。");
+        alert("性格を選んでください。");
         return;
     }
 
-    let result = `${name}さんは、`;
-    let personalityPart = selectedTraits.map(t => {
-        const p = personalityData[t];
-        return p[Math.floor(Math.random() * p.length)];
+    let pPart = selectedTraits.map(t => {
+        const arr = personalityData[t];
+        return arr[Math.floor(Math.random() * arr.length)];
     }).join("");
 
-    const learningPart = learningData[learningGrade][Math.floor(Math.random() * learningData[learningGrade].length)];
-    const rolePart = roleData[roleCategory][Math.floor(Math.random() * roleData[roleCategory].length)];
+    const lPart = learningData[grade][Math.floor(Math.random() * learningData[grade].length)];
+    const rPart = roleData[role][Math.floor(Math.random() * roleData[role].length)];
 
-    result += personalityPart + learningPart + rolePart;
-    document.getElementById('output-area').innerText = result;
+    // テキストエリアに流し込む（既存の編集内容は上書きされますが、確認ダイアログなしで素早く生成）
+    document.getElementById(`output_${idx}`).value = pPart + lPart + rPart;
 }
 
-function copyToClipboard() {
-    const text = document.getElementById('output-area').innerText;
-    navigator.clipboard.writeText(text).then(() => alert("コピーしました！"));
+function exportToCSV() {
+    const rows = document.getElementById('studentBody').querySelectorAll('tr');
+    if (rows.length === 0) return;
+
+    let csvContent = "\uFEFF名前,所見内容\n";
+
+    rows.forEach((row, index) => {
+        const name = document.getElementById(`name_${index}`).innerText;
+        // textareaの「現在の値（編集後）」を取得
+        const text = document.getElementById(`output_${index}`).value.replace(/"/g, '""'); 
+        csvContent += `"${name}","${text}"\n`;
+    });
+
+    const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+    const url = URL.createObjectURL(blob);
+    const link = document.createElement("a");
+    link.setAttribute("href", url);
+    link.setAttribute("download", "学級所見(編集済み).csv");
+    document.body.appendChild(link);
+    link.click();
+    document.body.removeChild(link);
+}
+
+function copyRow(idx) {
+    const text = document.getElementById(`output_${idx}`).value;
+    navigator.clipboard.writeText(text).then(() => {
+        const btn = event.target;
+        btn.innerText = "コピー完了！";
+        setTimeout(() => btn.innerText = "この子だけコピー", 1000);
+    });
 }
 </script>
 </body>
